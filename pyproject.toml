@@ -22,3 +22,9 @@ package = false
 dev = [
     "ruff>=0.16.7",
 ]
+
+[tool.ruff]
+cache-dir = ".ruff_cache"
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
