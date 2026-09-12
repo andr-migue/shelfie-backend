@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.db import init_db
 from app.core.exceptions import register_exception_handlers
-from app.routers import books as books_router
+from app.routers import books
 
 
 @asynccontextmanager
@@ -27,4 +27,4 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 
 register_exception_handlers(app)
-app.include_router(books_router.router)
+app.include_router(books.router)
