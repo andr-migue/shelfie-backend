@@ -12,7 +12,7 @@ class Book(Document):
     publisher: str | None = None
     published_year: int | None = None
     page_count: int | None = None
-    source: str = "open_library"
+    source: str
     fetched_at: datetime
 
     class Settings:
