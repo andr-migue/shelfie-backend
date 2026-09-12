@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Annotated
 
-from beanie import Document, Link
+from beanie import Document, Indexed, Link
 from pydantic import BaseModel, Field
 
 from app.models.book import Book
@@ -13,10 +14,13 @@ class Note(BaseModel):
 
 
 class LibraryEntry(Document):
-    book: Link[Book]
+    book: Annotated[Link[Book], Indexed(unique=True)]
     status: ReadingStatus = ReadingStatus.WANT_TO_READ
     rating: int | None = None
     notes: list[Note] = Field(default_factory=list)
     started_at: datetime | None = None
     finished_at: datetime | None = None
     added_at: datetime
+
+    class Settings:
+        name = "library_entries"
