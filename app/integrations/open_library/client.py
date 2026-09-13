@@ -2,10 +2,7 @@ import re
 
 import httpx
 
-from app.integrations.open_library.dto import (
-    OpenLibraryBookResult,
-    OpenLibrarySearchResult,
-)
+from app.core.protocols import BookMetadata
 
 SEARCH_FIELDS = "title,author_name,isbn,cover_i,publisher,first_publish_year,number_of_pages_median"
 
@@ -13,7 +10,7 @@ class OpenLibraryClient:
     def __init__(self, http_client: httpx.AsyncClient) -> None:
         self._http_client = http_client
 
-    async def search(self, query: str) -> list[OpenLibrarySearchResult]:
+    async def search(self, query: str) -> list[BookMetadata]:
         response = await self._http_client.get(
             "/search.json",
             params={"q": query, "fields": SEARCH_FIELDS, "limit": 20},
@@ -21,9 +18,9 @@ class OpenLibraryClient:
         response.raise_for_status()
 
         docs = response.json()["docs"]
-        return [self._parse_search_doc(doc) for doc in docs]
+        return [self._parse_search_doc(doc) for doc in docs if doc.get("isbn")]
 
-    async def get_by_isbn(self, isbn: str) -> OpenLibraryBookResult | None:
+    async def get_by_isbn(self, isbn: str) -> BookMetadata | None:
         response = await self._http_client.get(
             "/api/books",
             params={"bibkeys": f"ISBN:{isbn}", "jscmd": "data", "format": "json"},
@@ -36,25 +33,25 @@ class OpenLibraryClient:
 
         return self._parse_book(isbn, book)
 
-    def _parse_search_doc(self, doc: dict) -> OpenLibrarySearchResult:
-        isbns = doc.get("isbn") or []
+    def _parse_search_doc(self, doc: dict) -> BookMetadata:
         publishers = doc.get("publisher") or []
+        cover_id = doc.get("cover_i")
 
-        return OpenLibrarySearchResult(
+        return BookMetadata(
             title=doc.get("title", ""),
             authors=doc.get("author_name") or [],
-            isbn=isbns[0] if isbns else None,
-            cover_id=doc.get("cover_i"),
+            isbn=doc["isbn"][0],
+            cover_url=f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id is not None else None,
             publisher=publishers[0] if publishers else None,
             published_year=doc.get("first_publish_year"),
             page_count=doc.get("number_of_pages_median"),
         )
 
-    def _parse_book(self, isbn: str, book: dict) -> OpenLibraryBookResult:
+    def _parse_book(self, isbn: str, book: dict) -> BookMetadata:
         publishers = book.get("publishers") or []
         cover = book.get("cover") or {}
 
-        return OpenLibraryBookResult(
+        return BookMetadata(
             title=book.get("title", ""),
             authors=[author["name"] for author in book.get("authors", [])],
             isbn=isbn,

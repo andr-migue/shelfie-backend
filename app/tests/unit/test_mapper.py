@@ -1,51 +1,14 @@
 from datetime import UTC, datetime
 
-from app.integrations.open_library.dto import (
-    OpenLibraryBookResult,
-    OpenLibrarySearchResult,
-)
+from app.core.protocols import BookMetadata
 from app.integrations.open_library.mapper import (
     from_book_result,
     from_book_result_to_book_create,
-    from_search_result,
 )
 
 
-def test_from_search_result_builds_cover_url_from_cover_id():
-    result = OpenLibrarySearchResult(
-        title="Dune",
-        authors=["Frank Herbert"],
-        isbn="9780441172719",
-        cover_id=11481354,
-        publisher="Ace Books",
-        published_year=1965,
-        page_count=412,
-    )
-
-    book_out = from_search_result(result)
-
-    assert book_out.isbn == "9780441172719"
-    assert book_out.cover_url == "https://covers.openlibrary.org/b/id/11481354-M.jpg"
-
-
-def test_from_search_result_without_cover_id_leaves_cover_url_none():
-    result = OpenLibrarySearchResult(
-        title="Dune",
-        authors=["Frank Herbert"],
-        isbn="9780441172719",
-        cover_id=None,
-        publisher=None,
-        published_year=None,
-        page_count=None,
-    )
-
-    book_out = from_search_result(result)
-
-    assert book_out.cover_url is None
-
-
 def test_from_book_result_passes_cover_url_through_unchanged():
-    result = OpenLibraryBookResult(
+    result = BookMetadata(
         title="Nineteen Eighty-Four",
         authors=["George Orwell"],
         isbn="0451524934",
@@ -61,7 +24,7 @@ def test_from_book_result_passes_cover_url_through_unchanged():
 
 
 def test_from_book_result_to_book_create_sets_source_and_fetched_at():
-    result = OpenLibraryBookResult(
+    result = BookMetadata(
         title="Nineteen Eighty-Four",
         authors=["George Orwell"],
         isbn="0451524934",

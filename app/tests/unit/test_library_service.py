@@ -6,7 +6,7 @@ from app.core.exceptions import (
     DuplicateLibraryEntryError,
     LibraryEntryNotFoundError,
 )
-from app.integrations.open_library.client import OpenLibraryClient
+from app.core.protocols import BookMetadata
 from app.models.book import Book
 from app.models.enums import ReadingStatus
 from app.schemas.library_entry import LibraryEntryUpdate
@@ -14,28 +14,32 @@ from app.services import library as library_service
 
 ISBN = "0451524934"
 
-OPEN_LIBRARY_RESPONSE = {
-    f"ISBN:{ISBN}": {
-        "title": "Nineteen Eighty-Four",
-        "authors": [{"name": "George Orwell"}],
-        "publishers": [{"name": "Signet Classics"}],
-        "publish_date": "1993",
-        "number_of_pages": 328,
-        "cover": {"medium": "https://covers.openlibrary.org/b/id/12054527-M.jpg"},
-    }
-}
+BOOK_RESULT = BookMetadata(
+    title="Nineteen Eighty-Four",
+    authors=["George Orwell"],
+    isbn=ISBN,
+    cover_url="https://covers.openlibrary.org/b/id/12054527-M.jpg",
+    publisher="Signet Classics",
+    published_year=1993,
+    page_count=328,
+)
 
 
-def make_client() -> OpenLibraryClient:
-    http_client = httpx.AsyncClient(base_url="https://openlibrary.org", timeout=5.0)
-    return OpenLibraryClient(http_client)
+class FakeBookClient:
+    def __init__(self, result: BookMetadata | None = None, error: Exception | None = None) -> None:
+        self._result = result
+        self._error = error
+        self.calls = 0
+
+    async def get_by_isbn(self, isbn: str) -> BookMetadata | None:
+        self.calls += 1
+        if self._error is not None:
+            raise self._error
+        return self._result
 
 
-async def test_get_or_create_book_creates_new_book(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_get_or_create_book_creates_new_book():
+    client = FakeBookClient(result=BOOK_RESULT)
 
     book = await library_service.get_or_create_book(client, ISBN)
 
@@ -45,44 +49,32 @@ async def test_get_or_create_book_creates_new_book(respx_mock):
     assert await Book.find(Book.isbn == ISBN).count() == 1
 
 
-async def test_get_or_create_book_reuses_existing_without_calling_open_library(respx_mock):
-    route = respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_get_or_create_book_reuses_existing_without_calling_open_library():
+    client = FakeBookClient(result=BOOK_RESULT)
 
     first = await library_service.get_or_create_book(client, ISBN)
     second = await library_service.get_or_create_book(client, ISBN)
 
     assert first.id == second.id
-    assert route.call_count == 1
+    assert client.calls == 1
 
 
-async def test_get_or_create_book_raises_when_isbn_not_found(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json={})
-    )
-    client = make_client()
+async def test_get_or_create_book_raises_when_isbn_not_found():
+    client = FakeBookClient(result=None)
 
     with pytest.raises(BookNotFoundInCatalogError):
         await library_service.get_or_create_book(client, ISBN)
 
 
-async def test_get_or_create_book_propagates_timeout_when_open_library_is_down(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        side_effect=httpx.TimeoutException("timed out")
-    )
-    client = make_client()
+async def test_get_or_create_book_propagates_timeout_when_open_library_is_down():
+    client = FakeBookClient(error=httpx.TimeoutException("timed out"))
 
     with pytest.raises(httpx.TimeoutException):
         await library_service.get_or_create_book(client, ISBN)
 
 
-async def test_create_library_entry_raises_on_duplicate(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_create_library_entry_raises_on_duplicate():
+    client = FakeBookClient(result=BOOK_RESULT)
 
     await library_service.create_library_entry(client, ISBN)
 
@@ -100,11 +92,8 @@ async def test_update_entry_raises_on_malformed_id():
         await library_service.update_entry("not-an-object-id", LibraryEntryUpdate())
 
 
-async def test_update_entry_applies_only_provided_fields(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_update_entry_applies_only_provided_fields():
+    client = FakeBookClient(result=BOOK_RESULT)
     entry = await library_service.create_library_entry(client, ISBN)
 
     updated = await library_service.update_entry(
@@ -115,11 +104,8 @@ async def test_update_entry_applies_only_provided_fields(respx_mock):
     assert updated.rating is None
 
 
-async def test_delete_entry_removes_it_but_keeps_the_book(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_delete_entry_removes_it_but_keeps_the_book():
+    client = FakeBookClient(result=BOOK_RESULT)
     entry = await library_service.create_library_entry(client, ISBN)
 
     await library_service.delete_entry(str(entry.id))
@@ -129,11 +115,8 @@ async def test_delete_entry_removes_it_but_keeps_the_book(respx_mock):
     assert await Book.find(Book.isbn == ISBN).count() == 1
 
 
-async def test_list_entries_filters_by_status(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_list_entries_filters_by_status():
+    client = FakeBookClient(result=BOOK_RESULT)
     entry = await library_service.create_library_entry(client, ISBN)
     await library_service.update_entry(str(entry.id), LibraryEntryUpdate(status=ReadingStatus.READING))
 
@@ -144,11 +127,8 @@ async def test_list_entries_filters_by_status(respx_mock):
     assert len(finished) == 0
 
 
-async def test_list_entries_filters_by_search_on_title_or_author(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_list_entries_filters_by_search_on_title_or_author():
+    client = FakeBookClient(result=BOOK_RESULT)
     await library_service.create_library_entry(client, ISBN)
 
     by_author = await library_service.list_entries(search="orwell")
@@ -158,11 +138,8 @@ async def test_list_entries_filters_by_search_on_title_or_author(respx_mock):
     assert len(no_match) == 0
 
 
-async def test_add_note_appends_to_existing_notes(respx_mock):
-    respx_mock.get("https://openlibrary.org/api/books").mock(
-        return_value=httpx.Response(200, json=OPEN_LIBRARY_RESPONSE)
-    )
-    client = make_client()
+async def test_add_note_appends_to_existing_notes():
+    client = FakeBookClient(result=BOOK_RESULT)
     entry = await library_service.create_library_entry(client, ISBN)
 
     updated = await library_service.add_note(str(entry.id), "Excelente distopia")
