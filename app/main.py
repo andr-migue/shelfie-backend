@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.db import init_db
 from app.core.exceptions import register_exception_handlers
-from app.routers.router import router
+from app.routers.api import api_router
 
 
 @asynccontextmanager
@@ -28,4 +28,4 @@ app = FastAPI(lifespan=lifespan)
 
 register_exception_handlers(app)
 
-app.include_router(router)
+app.include_router(api_router)
