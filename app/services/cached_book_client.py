@@ -1,15 +1,14 @@
 from dataclasses import asdict
 
-from app.core.protocols import BookMetadata
-from app.integrations.open_library.client import OpenLibraryClient
+from app.core.protocols import BookClient, BookMetadata
 from app.services import cache as cache_service
 
 ISBN_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
 SEARCH_CACHE_TTL_SECONDS = 60 * 15  # 15 minutes
 
 
-class CachedOpenLibraryClient:
-    def __init__(self, client: OpenLibraryClient) -> None:
+class CachedBookClient:
+    def __init__(self, client: BookClient) -> None:
         self._client = client
 
     async def get_by_isbn(self, isbn: str) -> BookMetadata | None:

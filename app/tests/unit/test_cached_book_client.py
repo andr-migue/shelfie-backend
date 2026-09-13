@@ -1,5 +1,5 @@
 from app.core.protocols import BookMetadata
-from app.integrations.open_library.cached_client import CachedOpenLibraryClient
+from app.services.cached_book_client import CachedBookClient
 
 BOOK = BookMetadata(
     title="Nineteen Eighty-Four",
@@ -12,7 +12,7 @@ BOOK = BookMetadata(
 )
 
 
-class FakeOpenLibraryClient:
+class FakeBookClient:
     def __init__(self, book: BookMetadata | None = None, search_results: list[BookMetadata] | None = None) -> None:
         self._book = book
         self._search_results = search_results or []
@@ -29,8 +29,8 @@ class FakeOpenLibraryClient:
 
 
 async def test_get_by_isbn_caches_result_after_first_call():
-    inner = FakeOpenLibraryClient(book=BOOK)
-    client = CachedOpenLibraryClient(inner)
+    inner = FakeBookClient(book=BOOK)
+    client = CachedBookClient(inner)
 
     first = await client.get_by_isbn(BOOK.isbn)
     second = await client.get_by_isbn(BOOK.isbn)
@@ -41,8 +41,8 @@ async def test_get_by_isbn_caches_result_after_first_call():
 
 
 async def test_get_by_isbn_caches_not_found_result():
-    inner = FakeOpenLibraryClient(book=None)
-    client = CachedOpenLibraryClient(inner)
+    inner = FakeBookClient(book=None)
+    client = CachedBookClient(inner)
 
     first = await client.get_by_isbn("0000000000")
     second = await client.get_by_isbn("0000000000")
@@ -53,8 +53,8 @@ async def test_get_by_isbn_caches_not_found_result():
 
 
 async def test_search_caches_result_after_first_call():
-    inner = FakeOpenLibraryClient(search_results=[BOOK])
-    client = CachedOpenLibraryClient(inner)
+    inner = FakeBookClient(search_results=[BOOK])
+    client = CachedBookClient(inner)
 
     first = await client.search("1984")
     second = await client.search("1984")
@@ -65,8 +65,8 @@ async def test_search_caches_result_after_first_call():
 
 
 async def test_search_cache_key_ignores_case_and_surrounding_whitespace():
-    inner = FakeOpenLibraryClient(search_results=[BOOK])
-    client = CachedOpenLibraryClient(inner)
+    inner = FakeBookClient(search_results=[BOOK])
+    client = CachedBookClient(inner)
 
     await client.search("1984")
     await client.search("  1984  ")
@@ -76,8 +76,8 @@ async def test_search_cache_key_ignores_case_and_surrounding_whitespace():
 
 
 async def test_search_for_different_queries_does_not_share_cache():
-    inner = FakeOpenLibraryClient(search_results=[BOOK])
-    client = CachedOpenLibraryClient(inner)
+    inner = FakeBookClient(search_results=[BOOK])
+    client = CachedBookClient(inner)
 
     await client.search("1984")
     await client.search("dune")

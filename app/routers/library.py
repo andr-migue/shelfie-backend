@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 
-from app.integrations.open_library.dependencies import OpenLibraryClientDep
+from app.core.dependencies import BookClientDep
 from app.models.enums import ReadingStatus
 from app.models.library_entry import LibraryEntry
 from app.schemas.library_entry import (
@@ -31,7 +31,7 @@ def _to_out(entry: LibraryEntry) -> LibraryEntryOut:
 
 
 @router.post("", response_model=LibraryEntryOut, status_code=status.HTTP_201_CREATED)
-async def add_to_library(data: LibraryEntryCreate, client: OpenLibraryClientDep):
+async def add_to_library(data: LibraryEntryCreate, client: BookClientDep):
     entry = await library_service.create_library_entry(client, data.isbn)
     return _to_out(entry)
 
