@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     mongodb_uri: str
     database_name: str
+    book_provider: str = "open_library"
     open_library_base_url: str = "https://openlibrary.org"
     http_timeout: float = 15.0
     cors_origins: list[str] = ["http://localhost:5173"]
