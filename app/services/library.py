@@ -4,7 +4,7 @@ from beanie.operators import In, Or, RegEx
 from pydantic import ValidationError
 
 from app.core.exceptions import (
-    BookNotFoundInOpenLibraryError,
+    BookNotFoundInCatalogError,
     DuplicateLibraryEntryError,
     LibraryEntryNotFoundError,
 )
@@ -23,7 +23,7 @@ async def get_or_create_book(client: BookClient, isbn: str) -> Book:
 
     result = await client.get_by_isbn(isbn)
     if result is None:
-        raise BookNotFoundInOpenLibraryError(isbn)
+        raise BookNotFoundInCatalogError(isbn)
 
     book_create = from_book_result_to_book_create(result)
     book = Book(**book_create.model_dump())

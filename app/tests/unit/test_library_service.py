@@ -2,7 +2,7 @@ import httpx
 import pytest
 
 from app.core.exceptions import (
-    BookNotFoundInOpenLibraryError,
+    BookNotFoundInCatalogError,
     DuplicateLibraryEntryError,
     LibraryEntryNotFoundError,
 )
@@ -64,7 +64,7 @@ async def test_get_or_create_book_raises_when_isbn_not_found(respx_mock):
     )
     client = make_client()
 
-    with pytest.raises(BookNotFoundInOpenLibraryError):
+    with pytest.raises(BookNotFoundInCatalogError):
         await library_service.get_or_create_book(client, ISBN)
 
 
