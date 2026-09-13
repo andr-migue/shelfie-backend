@@ -23,6 +23,14 @@ class LibraryEntryNotFoundError(Exception):
     pass
 
 
+class CoverHostNotAllowedError(Exception):
+    pass
+
+
+class CoverNotFoundError(Exception):
+    pass
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BookNotFoundError)
     async def book_not_found_handler(request, exc):
@@ -47,3 +55,11 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(httpx.TransportError)
     async def open_library_unreachable_handler(request, exc):
         return JSONResponse(status_code=502, content={"detail": "Could not reach Open Library"})
+
+    @app.exception_handler(CoverHostNotAllowedError)
+    async def cover_host_not_allowed_handler(request, exc):
+        return JSONResponse(status_code=400, content={"detail": "Cover host not allowed"})
+
+    @app.exception_handler(CoverNotFoundError)
+    async def cover_not_found_handler(request, exc):
+        return JSONResponse(status_code=404, content={"detail": "Cover not found"})
