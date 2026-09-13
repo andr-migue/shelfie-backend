@@ -19,6 +19,10 @@ class DuplicateLibraryEntryError(Exception):
     pass
 
 
+class LibraryEntryNotFoundError(Exception):
+    pass
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BookNotFoundError)
     async def book_not_found_handler(request, exc):
@@ -35,6 +39,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(DuplicateLibraryEntryError)
     async def duplicate_library_entry_handler(request, exc):
         return JSONResponse(status_code=409, content={"detail": "This book is already in your library"})
+
+    @app.exception_handler(LibraryEntryNotFoundError)
+    async def library_entry_not_found_handler(request, exc):
+        return JSONResponse(status_code=404, content={"detail": "Library entry not found"})
 
     @app.exception_handler(httpx.TimeoutException)
     async def open_library_timeout_handler(request, exc):
