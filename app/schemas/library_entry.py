@@ -11,6 +11,10 @@ class NoteOut(BaseModel):
     created_at: datetime
 
 
+class NoteCreate(BaseModel):
+    text: str
+
+
 class LibraryEntryCreate(BaseModel):
     isbn: str
 

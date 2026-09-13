@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from beanie.operators import In, Or, RegEx
 from pydantic import ValidationError
 
 from app.core.exceptions import (
@@ -10,7 +11,8 @@ from app.core.exceptions import (
 from app.integrations.open_library.client import OpenLibraryClient
 from app.integrations.open_library.mapper import from_book_result_to_book_create
 from app.models.book import Book
-from app.models.library_entry import LibraryEntry
+from app.models.enums import ReadingStatus
+from app.models.library_entry import LibraryEntry, Note
 from app.schemas.library_entry import LibraryEntryUpdate
 
 
@@ -41,7 +43,7 @@ async def create_library_entry(client: OpenLibraryClient, isbn: str) -> LibraryE
     return entry
 
 
-async def _get_entry_or_raise(entry_id: str) -> LibraryEntry:
+async def get_entry(entry_id: str) -> LibraryEntry:
     try:
         entry = await LibraryEntry.get(entry_id, fetch_links=True)
     except ValidationError as exc:
@@ -53,8 +55,27 @@ async def _get_entry_or_raise(entry_id: str) -> LibraryEntry:
     return entry
 
 
+async def list_entries(
+    status: ReadingStatus | None = None, search: str | None = None
+) -> list[LibraryEntry]:
+    conditions = []
+
+    if status is not None:
+        conditions.append(LibraryEntry.status == status)
+
+    if search is not None:
+        matching_books = await Book.find(
+            Or(RegEx(Book.title, search, "i"), RegEx(Book.authors, search, "i"))
+        ).to_list()
+        if not matching_books:
+            return []
+        conditions.append(In(LibraryEntry.book.id, [book.id for book in matching_books]))
+
+    return await LibraryEntry.find(*conditions, fetch_links=True).to_list()
+
+
 async def update_entry(entry_id: str, data: LibraryEntryUpdate) -> LibraryEntry:
-    entry = await _get_entry_or_raise(entry_id)
+    entry = await get_entry(entry_id)
 
     updates = data.model_dump(exclude_unset=True)
     for field, value in updates.items():
@@ -65,5 +86,12 @@ async def update_entry(entry_id: str, data: LibraryEntryUpdate) -> LibraryEntry:
 
 
 async def delete_entry(entry_id: str) -> None:
-    entry = await _get_entry_or_raise(entry_id)
+    entry = await get_entry(entry_id)
     await entry.delete()
+
+
+async def add_note(entry_id: str, text: str) -> LibraryEntry:
+    entry = await get_entry(entry_id)
+    entry.notes.append(Note(text=text, created_at=datetime.now(UTC)))
+    await entry.save()
+    return entry
