@@ -16,7 +16,7 @@ async def get_cover(source_url: str, http_client: httpx.AsyncClient) -> tuple[by
     if cached is not None:
         return cached.data, cached.content_type
 
-    response = await http_client.get(source_url)
+    response = await http_client.get(source_url, follow_redirects=True)
     if response.status_code == 404:
         raise CoverNotFoundError(source_url)
     response.raise_for_status()
