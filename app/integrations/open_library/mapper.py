@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.integrations.open_library.dto import (
     OpenLibraryBookResult,
     OpenLibrarySearchResult,
 )
-from app.schemas.book import BookOut, BookCreate
+from app.schemas.book import BookCreate, BookOut
 
 
 def from_search_result(result: OpenLibrarySearchResult) -> BookOut:
@@ -47,5 +47,5 @@ def from_book_result_to_book_create(result: OpenLibraryBookResult) -> BookCreate
         published_year=result.published_year,
         page_count=result.page_count,
         source="open_library",
-        fetched_at=datetime.now("UTC-5"),
+        fetched_at=datetime.now(UTC),
     )
