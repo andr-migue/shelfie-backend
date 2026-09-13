@@ -1,3 +1,4 @@
+import httpx
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -10,6 +11,14 @@ class BookInUseError(Exception):
     pass
 
 
+class BookNotFoundInOpenLibraryError(Exception):
+    pass
+
+
+class DuplicateLibraryEntryError(Exception):
+    pass
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BookNotFoundError)
     async def book_not_found_handler(request, exc):
@@ -18,3 +27,15 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BookInUseError)
     async def book_in_use_handler(request, exc):
         return JSONResponse(status_code=409, content={"detail": "Book is referenced by a library entry"})
+
+    @app.exception_handler(BookNotFoundInOpenLibraryError)
+    async def book_not_found_in_open_library_handler(request, exc):
+        return JSONResponse(status_code=404, content={"detail": "Book not found in Open Library"})
+
+    @app.exception_handler(DuplicateLibraryEntryError)
+    async def duplicate_library_entry_handler(request, exc):
+        return JSONResponse(status_code=409, content={"detail": "This book is already in your library"})
+
+    @app.exception_handler(httpx.TimeoutException)
+    async def open_library_timeout_handler(request, exc):
+        return JSONResponse(status_code=502, content={"detail": "Open Library did not respond in time"})
