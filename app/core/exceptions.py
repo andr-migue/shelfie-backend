@@ -44,6 +44,6 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def library_entry_not_found_handler(request, exc):
         return JSONResponse(status_code=404, content={"detail": "Library entry not found"})
 
-    @app.exception_handler(httpx.TimeoutException)
-    async def open_library_timeout_handler(request, exc):
-        return JSONResponse(status_code=502, content={"detail": "Open Library did not respond in time"})
+    @app.exception_handler(httpx.TransportError)
+    async def open_library_unreachable_handler(request, exc):
+        return JSONResponse(status_code=502, content={"detail": "Could not reach Open Library"})
