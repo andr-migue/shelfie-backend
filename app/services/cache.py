@@ -7,8 +7,11 @@ async def get(key: str) -> dict | None:
     entry = await CacheEntry.find_one(CacheEntry.key == key)
     if entry is None:
         return None
-    if entry.expires_at <= datetime.now(UTC):
+
+    expires_at = entry.expires_at.replace(tzinfo=UTC) if entry.expires_at.tzinfo is None else entry.expires_at
+    if expires_at <= datetime.now(UTC):
         return None
+
     return entry.value
 
 
