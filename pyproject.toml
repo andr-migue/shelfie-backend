@@ -26,6 +26,10 @@ dev = [
     "ruff>=0.16.7",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
 [tool.ruff]
 cache-dir = ".ruff_cache"
 
