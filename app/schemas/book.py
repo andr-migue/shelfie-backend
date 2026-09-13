@@ -11,7 +11,6 @@ class BookOut(BaseModel):
     publisher: str | None = None
     published_year: int | None = None
     page_count: int | None = None
-    source: str | None
 
 
 class BookCreate(BaseModel):
