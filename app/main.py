@@ -15,8 +15,9 @@ async def lifespan(app):
     mongo_client = await init_db()
 
     app.state.open_library_http_client = httpx.AsyncClient(
-        base_url=settings.open_library_base_url, 
-        timeout=settings.http_timeout
+        base_url=settings.open_library_base_url,
+        timeout=settings.http_timeout,
+        transport=httpx.AsyncHTTPTransport(retries=3),
     )
 
     yield
