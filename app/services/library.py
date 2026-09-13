@@ -8,7 +8,7 @@ from app.core.exceptions import (
     DuplicateLibraryEntryError,
     LibraryEntryNotFoundError,
 )
-from app.integrations.open_library.client import OpenLibraryClient
+from app.core.protocols import BookClient
 from app.integrations.open_library.mapper import from_book_result_to_book_create
 from app.models.book import Book
 from app.models.enums import ReadingStatus
@@ -16,7 +16,7 @@ from app.models.library_entry import LibraryEntry, Note
 from app.schemas.library_entry import LibraryEntryUpdate
 
 
-async def get_or_create_book(client: OpenLibraryClient, isbn: str) -> Book:
+async def get_or_create_book(client: BookClient, isbn: str) -> Book:
     existing = await Book.find_one(Book.isbn == isbn)
     if existing is not None:
         return existing
@@ -31,7 +31,7 @@ async def get_or_create_book(client: OpenLibraryClient, isbn: str) -> Book:
     return book
 
 
-async def create_library_entry(client: OpenLibraryClient, isbn: str) -> LibraryEntry:
+async def create_library_entry(client: BookClient, isbn: str) -> LibraryEntry:
     book = await get_or_create_book(client, isbn)
 
     existing_entry = await LibraryEntry.find_one(LibraryEntry.book.id == book.id)
