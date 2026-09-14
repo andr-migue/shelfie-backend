@@ -8,11 +8,12 @@ SEARCH_CACHE_TTL_SECONDS = 60 * 15  # 15 minutes
 
 
 class CachedBookClient:
-    def __init__(self, client: BookClient) -> None:
+    def __init__(self, client: BookClient, provider: str) -> None:
         self._client = client
+        self._provider = provider
 
     async def get_by_isbn(self, isbn: str) -> BookMetadata | None:
-        key = f"isbn:{isbn}"
+        key = f"isbn:{self._provider}:{isbn}"
         cached = await cache_service.get(key)
         if cached is not None:
             return BookMetadata(**cached["data"]) if cached["found"] else None
@@ -25,7 +26,7 @@ class CachedBookClient:
         return result
 
     async def search(self, query: str) -> list[BookMetadata]:
-        key = f"search:{query.strip().lower()}"
+        key = f"search:{self._provider}:{query.strip().lower()}"
         cached = await cache_service.get(key)
         if cached is not None:
             return [BookMetadata(**item) for item in cached["results"]]

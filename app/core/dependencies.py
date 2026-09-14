@@ -15,7 +15,7 @@ def get_book_client(
     selected = provider or settings.book_provider
 
     if selected == "open_library":
-        return CachedBookClient(OpenLibraryClient(request.app.state.open_library_http_client))
+        return CachedBookClient(OpenLibraryClient(request.app.state.open_library_http_client), provider=selected)
 
     raise HTTPException(status_code=400, detail=f"Unknown book provider: {selected}")
 
