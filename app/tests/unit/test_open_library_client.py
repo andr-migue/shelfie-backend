@@ -1,16 +1,9 @@
-from urllib.parse import quote
-
 import httpx
 import pytest
 
-from app.core.config import settings
 from app.integrations.open_library.client import OpenLibraryClient
 
 ISBN = "0451524934"
-
-
-def proxy_cover_url(source_url: str) -> str:
-    return f"{settings.public_base_url}/catalog/covers?src={quote(source_url, safe='')}"
 
 OPEN_LIBRARY_RESPONSE = {
     f"ISBN:{ISBN}": {
@@ -41,7 +34,7 @@ async def test_get_by_isbn_returns_parsed_book_when_found(respx_mock):
     assert result.title == "Nineteen Eighty-Four"
     assert result.authors == ["George Orwell"]
     assert result.isbn == ISBN
-    assert result.cover_url == proxy_cover_url("https://covers.openlibrary.org/b/id/12054527-M.jpg")
+    assert result.cover_url == "https://covers.openlibrary.org/b/id/12054527-M.jpg"
     assert result.publisher == "Signet Classics"
     assert result.published_year == 1993
     assert result.page_count == 328
@@ -93,7 +86,7 @@ async def test_search_builds_cover_url_from_cover_id(respx_mock):
 
     assert len(results) == 1
     assert results[0].isbn == "9780441172719"
-    assert results[0].cover_url == proxy_cover_url("https://covers.openlibrary.org/b/id/11481354-M.jpg")
+    assert results[0].cover_url == "https://covers.openlibrary.org/b/id/11481354-M.jpg"
 
 
 async def test_search_without_cover_id_leaves_cover_url_none(respx_mock):

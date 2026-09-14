@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
+from urllib.parse import quote
 
+from app.core.config import settings
 from app.core.protocols import BookMetadata
 from app.integrations.open_library.mapper import (
     from_book_result,
@@ -7,7 +9,7 @@ from app.integrations.open_library.mapper import (
 )
 
 
-def test_from_book_result_passes_cover_url_through_unchanged():
+def test_from_book_result_proxies_cover_url():
     result = BookMetadata(
         title="Nineteen Eighty-Four",
         authors=["George Orwell"],
@@ -20,7 +22,10 @@ def test_from_book_result_passes_cover_url_through_unchanged():
 
     book_out = from_book_result(result)
 
-    assert book_out.cover_url == "https://covers.openlibrary.org/b/id/12054527-M.jpg"
+    expected = f"{settings.public_base_url}/catalog/covers?src=" + quote(
+        "https://covers.openlibrary.org/b/id/12054527-M.jpg", safe=""
+    )
+    assert book_out.cover_url == expected
 
 
 def test_from_book_result_to_book_create_sets_source_and_fetched_at():
